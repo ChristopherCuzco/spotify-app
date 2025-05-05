@@ -149,13 +149,13 @@ app.get('/api/callback', async (req, res) => {
         });
 
 
-        console.log(userResponse);
 
         if (!userResponse.ok) {
             throw new Error('Failed to get user info');
         }
 
         const userData = await userResponse.json();
+        console.log(userData);
         const userId = userData.id;
 
         // Save token to MongoDB with userId
