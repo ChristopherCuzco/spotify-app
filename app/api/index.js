@@ -133,9 +133,10 @@ app.get('/api/callback', async (req, res) => {
         });
 
         if (!response.ok) {
+            const errorText = await response.text();
+            console.error('Token request failed:', response.status, errorText); // 👈 ADD THIS
             throw new Error(`Token request failed: ${response.status}`);
         }
-
         const data = await response.json();
 
         // Get user info from Spotify
