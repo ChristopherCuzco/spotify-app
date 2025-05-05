@@ -10,9 +10,9 @@ function Home() {
   // const tracksURL = "http://localhost:3000/api/artists/tracks";
   // const relatedURL = "http://localhost:3000/api/artists/related";
 
-  const profileURL = "https://spotify-app-alpha-six.vercel.app/";
-  const tracksURL = "http://localhost:3000/api/artists/tracks";
-  const relatedURL = "http://localhost:3000/api/artists/related";
+  const profileURL = "https://spotify-app-alpha-six.vercel.app/api/artists";
+  const tracksURL = "https://spotify-app-alpha-six.vercel.app/api/artists/tracks";
+  const relatedURL = "https://spotify-app-alpha-six.vercel.app/api/artists/related";
 
   useEffect(() => {
     fetch(profileURL)
@@ -35,7 +35,8 @@ function Home() {
   }, []);
 
   const handleLogin = () => {
-    window.location.href = "http://localhost:3000/api/login";
+    // window.location.href = "http://localhost:3000/api/login";
+    window.location.href = "https://spotify-app-alpha-six.vercel.app/api/login"
   };
 
   return (
