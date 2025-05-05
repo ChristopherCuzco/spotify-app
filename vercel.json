@@ -1,0 +1,55 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "app/api/index.js",
+      "use": "@vercel/node"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api",
+      "dest": "app/api/index.js"
+    },
+    {
+      "src": "/api/login",
+      "dest": "app/api/index.js"
+    },
+    {
+      "src": "/api/callback",
+      "dest": "app/api/index.js"
+    },
+    {
+      "src": "/api/me",
+      "dest": "app/api/index.js"
+    },
+    {
+      "src": "/api/me/top/tracks",
+      "dest": "app/api/index.js"
+    },
+    {
+      "src": "/api/me/top/artists",
+      "dest": "app/api/index.js"
+    },
+    {
+      "src": "/api/artists",
+      "dest": "app/api/index.js"
+    },
+    {
+      "src": "/api/artists/tracks",
+      "dest": "app/api/index.js"
+    },
+    {
+      "src": "/api/artists/related",
+      "dest": "app/api/index.js"
+    },
+    {
+      "src": "/api/logout",
+      "dest": "app/api/index.js"
+    },
+    {
+      "src": "/api/test",
+      "dest": "app/api/index.js"
+    }
+  ]
+} 
