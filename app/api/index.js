@@ -30,6 +30,7 @@ mongoose.connect(process.env.MONGO_URI, {
     .catch(err => console.error('MongoDB connection error:', err));
 
 const tokenSchema = new mongoose.Schema({
+    userId: String,
     access_token: String,
     refresh_token: String,
     expires_at: Number
@@ -37,42 +38,47 @@ const tokenSchema = new mongoose.Schema({
 
 const Token = mongoose.model('Token', tokenSchema);
 
-async function getValidToken() {
-    let token = await Token.findOne();
+async function getValidToken(userId) {
+    try {
+        let token = await Token.findOne({ userId });
 
-    if (!token) {
-        throw new Error('No token found');
-    }
-
-    // If token is expired, refresh it
-    if (Date.now() >= token.expires_at) {
-        const response = await fetch('https://accounts.spotify.com/api/token', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-            },
-            body: querystring.stringify({
-                grant_type: 'refresh_token',
-                refresh_token: token.refresh_token,
-                client_id: client_id,
-                client_secret: client_secret
-            })
-        });
-
-        if (!response.ok) {
-            throw new Error('Failed to refresh token');
+        if (!token) {
+            throw new Error('No token found for user');
         }
 
-        const data = await response.json();
+        // If token is expired, refresh it
+        if (Date.now() >= token.expires_at) {
+            const response = await fetch('https://accounts.spotify.com/api/token', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: querystring.stringify({
+                    grant_type: 'refresh_token',
+                    refresh_token: token.refresh_token,
+                    client_id: client_id,
+                    client_secret: client_secret
+                })
+            });
 
-        token.access_token = data.access_token;
-        token.expires_at = Date.now() + (data.expires_in * 1000);
-        await token.save();
+            if (!response.ok) {
+                throw new Error('Failed to refresh token');
+            }
+
+            const data = await response.json();
+
+            token.access_token = data.access_token;
+            token.expires_at = Date.now() + (data.expires_in * 1000);
+            await token.save();
+
+            return token.access_token;
+        }
 
         return token.access_token;
+    } catch (error) {
+        console.error('Error in getValidToken:', error);
+        throw error;
     }
-
-    return token.access_token;
 }
 
 app.get('/api', (req, res) => {
@@ -132,10 +138,25 @@ app.get('/api/callback', async (req, res) => {
 
         const data = await response.json();
 
-        // Save token to MongoDB
+        // Get user info from Spotify
+        const userResponse = await fetch('https://api.spotify.com/v1/me', {
+            headers: {
+                'Authorization': `Bearer ${data.access_token}`
+            }
+        });
+
+        if (!userResponse.ok) {
+            throw new Error('Failed to get user info');
+        }
+
+        const userData = await userResponse.json();
+        const userId = userData.id;
+
+        // Save token to MongoDB with userId
         await Token.findOneAndUpdate(
-            {},
+            { userId },
             {
+                userId,
                 access_token: data.access_token,
                 refresh_token: data.refresh_token,
                 expires_at: Date.now() + (data.expires_in * 1000)
@@ -143,8 +164,8 @@ app.get('/api/callback', async (req, res) => {
             { upsert: true, new: true }
         );
 
-        // Redirect to the dashboard
-        res.redirect('https://spotify-app-alpha-six.vercel.app/dashboard');
+        // Redirect to the dashboard with userId
+        res.redirect(`https://spotify-app-alpha-six.vercel.app/dashboard?userId=${userId}`);
     } catch (error) {
         console.error('Callback error:', error);
         res.status(500).json({ error: 'Failed to get access token' });
@@ -153,7 +174,12 @@ app.get('/api/callback', async (req, res) => {
 
 app.get('/api/me', async (req, res) => {
     try {
-        const access_token = await getValidToken();
+        const userId = req.query.userId;
+        if (!userId) {
+            return res.status(400).json({ error: 'userId is required' });
+        }
+
+        const access_token = await getValidToken(userId);
         const response = await fetch('https://api.spotify.com/v1/me', {
             headers: {
                 'Authorization': `Bearer ${access_token}`
@@ -174,10 +200,15 @@ app.get('/api/me', async (req, res) => {
 
 app.get('/api/me/top/tracks', async (req, res) => {
     const time_range = req.query.time_range || 'long_term';
+    const userId = req.query.userId;
     const url = `https://api.spotify.com/v1/me/top/tracks?time_range=${time_range}&limit=5`;
 
     try {
-        const access_token = await getValidToken();
+        if (!userId) {
+            return res.status(400).json({ error: 'userId is required' });
+        }
+
+        const access_token = await getValidToken(userId);
         const response = await fetch(url, {
             headers: {
                 'Authorization': `Bearer ${access_token}`
@@ -198,10 +229,15 @@ app.get('/api/me/top/tracks', async (req, res) => {
 
 app.get('/api/me/top/artists', async (req, res) => {
     const time_range = req.query.time_range || 'long_term';
+    const userId = req.query.userId;
     const url = `https://api.spotify.com/v1/me/top/artists?time_range=${time_range}&limit=5`;
 
     try {
-        const access_token = await getValidToken();
+        if (!userId) {
+            return res.status(400).json({ error: 'userId is required' });
+        }
+
+        const access_token = await getValidToken(userId);
         const response = await fetch(url, {
             headers: {
                 'Authorization': `Bearer ${access_token}`
@@ -301,7 +337,12 @@ app.get('/api/artists/related', async (req, res) => {
 
 app.post('/api/logout', async (req, res) => {
     try {
-        await Token.deleteMany({}); // Delete all tokens
+        const userId = req.query.userId;
+        if (!userId) {
+            return res.status(400).json({ error: 'userId is required' });
+        }
+
+        await Token.deleteOne({ userId });
         res.status(200).json({ message: 'Logged out successfully' });
     } catch (error) {
         console.error('Logout error:', error);

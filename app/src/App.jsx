@@ -1,18 +1,26 @@
 import "./index.css";
 import React from "react";
 import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 
 function App() {
+  const [searchParams] = useSearchParams();
+  const userId = searchParams.get('userId');
   const [profile, setProfile] = useState(null);
   const [topTracks, setTopTracks] = useState([]);
   const [topArtists, setTopArtists] = useState([]);
   const [duration, setDuration] = useState("long_term");
 
-  const profileURL = "https://spotify-app-alpha-six.vercel.app/api/me";
-  const tracksURL = `https://spotify-app-alpha-six.vercel.app/api/me/top/tracks?time_range=${duration}`;
-  const artistsURL = `https://spotify-app-alpha-six.vercel.app/api/me/top/artists?time_range=${duration}`;
+  const profileURL = `https://spotify-app-alpha-six.vercel.app/api/me?userId=${userId}`;
+  const tracksURL = `https://spotify-app-alpha-six.vercel.app/api/me/top/tracks?time_range=${duration}&userId=${userId}`;
+  const artistsURL = `https://spotify-app-alpha-six.vercel.app/api/me/top/artists?time_range=${duration}&userId=${userId}`;
 
   useEffect(() => {
+    if (!userId) {
+      window.location.href = "https://spotify-app-alpha-six.vercel.app";
+      return;
+    }
+
     fetch(profileURL)
       .then((res) => res.json())
       .then((data) => setProfile(data));
@@ -24,10 +32,10 @@ function App() {
     fetch(artistsURL)
       .then((res) => res.json())
       .then((data) => setTopArtists(data.items));
-  }, [duration]);
+  }, [duration, userId]);
 
   const handleLogout = () => {
-    fetch("https://spotify-app-alpha-six.vercel.app/api/logout", {
+    fetch(`https://spotify-app-alpha-six.vercel.app/api/logout?userId=${userId}`, {
       method: "POST"
     }).then(() => {
       window.location.href = "https://spotify-app-alpha-six.vercel.app";
