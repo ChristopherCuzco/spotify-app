@@ -148,6 +148,9 @@ app.get('/api/callback', async (req, res) => {
             }
         });
 
+
+        console.log(userResponse);
+
         if (!userResponse.ok) {
             throw new Error('Failed to get user info');
         }
