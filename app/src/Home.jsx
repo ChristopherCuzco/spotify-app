@@ -5,8 +5,12 @@ function Home() {
   const [artist, setArtist] = useState(null);
   const [tracks, setTracks] = useState([]);
   const [related, setRelated] = useState([]);
+  
+  // const profileURL = "http://localhost:3000/api/artists";
+  // const tracksURL = "http://localhost:3000/api/artists/tracks";
+  // const relatedURL = "http://localhost:3000/api/artists/related";
 
-  const profileURL = "http://localhost:3000/api/artists";
+  const profileURL = "https://spotify-app-alpha-six.vercel.app/";
   const tracksURL = "http://localhost:3000/api/artists/tracks";
   const relatedURL = "http://localhost:3000/api/artists/related";
 

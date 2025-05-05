@@ -7,7 +7,7 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 const app = express();
-const PORT = 3000;
+// const PORT = 3000;
 
 const client_secret = process.env.CLIENT_SECRET;
 const client_id = process.env.CLIENT_ID;
@@ -208,6 +208,7 @@ app.post('/api/logout', (req,res) =>{
     res.status(200).json({ message: 'Logged out successfully' });
 });
 
-app.listen(PORT, () => {
-    console.log(`Serve is running on port ${PORT}`);
-})
+export default app;
+// app.listen(PORT, () => {
+//     console.log(`Serve is running on port ${PORT}`);
+// })
