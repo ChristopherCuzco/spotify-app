@@ -13,37 +13,22 @@ function App() {
   const artistsURL = `https://spotify-app-alpha-six.vercel.app/api/me/top/artists?time_range=${duration}`;
 
   useEffect(() => {
-    fetch(profileURL, {
-      credentials: 'include'
-    })
-      .then((res) => {
-        if (!res.ok) {
-          window.location.href = "https://spotify-app-alpha-six.vercel.app";
-          return;
-        }
-        return res.json();
-      })
-      .then((data) => {
-        if (data) setProfile(data);
-      });
+    fetch(profileURL)
+      .then((res) => res.json())
+      .then((data) => setProfile(data));
 
-    fetch(tracksURL, {
-      credentials: 'include'
-    })
+    fetch(tracksURL)
       .then((res) => res.json())
       .then((data) => setTopTracks(data.items));
 
-    fetch(artistsURL, {
-      credentials: 'include'
-    })
+    fetch(artistsURL)
       .then((res) => res.json())
       .then((data) => setTopArtists(data.items));
   }, [duration]);
 
   const handleLogout = () => {
     fetch("https://spotify-app-alpha-six.vercel.app/api/logout", {
-      method: "POST",
-      credentials: 'include'
+      method: "POST"
     }).then(() => {
       window.location.href = "https://spotify-app-alpha-six.vercel.app";
     });
@@ -97,27 +82,28 @@ function App() {
             Top Tracks
           </h3>
           <ul className="flex flex-col space-y-2 p-4 rounded-2xl bg-zinc-900/50 backdrop-blur-sm w-full border border-zinc-800/50 shadow-xl overflow-y-auto max-h-[400px]">
-            {topTracks &&
-              topTracks.map((track) => (
-                <li
-                  className="flex items-center space-x-3 p-2 rounded-lg bg-zinc-800/50 hover:bg-zinc-700/50 transition-all duration-300 backdrop-blur-sm"
-                  key={track.id}
-                >
+            {topTracks && topTracks.map((track) => (
+              <li
+                className="flex items-center space-x-3 p-2 rounded-lg bg-zinc-800/50 hover:bg-zinc-700/50 transition-all duration-300 backdrop-blur-sm"
+                key={track.id}
+              >
+                {track.album?.images?.[1]?.url && (
                   <img
                     className="w-12 h-12 sm:w-16 sm:h-16 rounded-lg shadow-xl ring-1 ring-white/10"
-                    src={track.album?.images[1]?.url}
+                    src={track.album.images[1].url}
                     alt={track.name}
                   />
-                  <div className="flex flex-col min-w-0">
-                    <span className="font-semibold text-sm sm:text-md text-neutral-200 truncate">
-                      {track.name}
-                    </span>
-                    <span className="text-neutral-400 text-xs sm:text-sm truncate">
-                      {track.artists[0]?.name}
-                    </span>
-                  </div>
-                </li>
-              ))}
+                )}
+                <div className="flex flex-col min-w-0">
+                  <span className="font-semibold text-sm sm:text-md text-neutral-200 truncate">
+                    {track.name}
+                  </span>
+                  <span className="text-neutral-400 text-xs sm:text-sm truncate">
+                    {track.artists?.[0]?.name}
+                  </span>
+                </div>
+              </li>
+            ))}
           </ul>
         </div>
 
@@ -126,24 +112,25 @@ function App() {
             Top Artists
           </h3>
           <ul className="flex flex-col space-y-2 p-4 rounded-2xl bg-zinc-900/50 backdrop-blur-sm w-full border border-zinc-800/50 shadow-xl overflow-y-auto max-h-[400px]">
-            {topArtists &&
-              topArtists.map((artist) => (
-                <li
-                  className="flex items-center space-x-3 p-2 rounded-lg bg-zinc-800/50 hover:bg-zinc-700/50 transition-all duration-300 backdrop-blur-sm"
-                  key={artist.id}
-                >
+            {topArtists && topArtists.map((artist) => (
+              <li
+                className="flex items-center space-x-3 p-2 rounded-lg bg-zinc-800/50 hover:bg-zinc-700/50 transition-all duration-300 backdrop-blur-sm"
+                key={artist.id}
+              >
+                {artist.images?.[0]?.url && (
                   <img
                     className="w-12 h-12 sm:w-16 sm:h-16 rounded-lg shadow-xl ring-1 ring-white/10"
-                    src={artist.images[0]?.url}
+                    src={artist.images[0].url}
                     alt={artist.name}
                   />
-                  <div className="flex flex-col min-w-0">
-                    <span className="font-semibold text-sm sm:text-md text-neutral-200 truncate">
-                      {artist.name}
-                    </span>
-                  </div>
-                </li>
-              ))}
+                )}
+                <div className="flex flex-col min-w-0">
+                  <span className="font-semibold text-sm sm:text-md text-neutral-200 truncate">
+                    {artist.name}
+                  </span>
+                </div>
+              </li>
+            ))}
           </ul>
         </div>
       </div>

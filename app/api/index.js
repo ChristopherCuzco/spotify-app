@@ -3,7 +3,7 @@ import cors from 'cors';
 import querystring from 'querystring';
 import randomstring from 'randomstring';
 import dotenv from 'dotenv';
-import cookieParser from 'cookie-parser';
+import mongoose from 'mongoose';
 
 dotenv.config();
 
@@ -14,12 +14,6 @@ const client_secret = process.env.CLIENT_SECRET;
 const client_id = process.env.CLIENT_ID;
 const redirect_uri = process.env.REDIRECT_URI;
 
-let clientToken = {
-    access_token: null,
-    expires_at: 0
-};
-
-
 app.use(cors({
     origin: 'https://spotify-app-alpha-six.vercel.app',
     credentials: true,
@@ -28,15 +22,64 @@ app.use(cors({
 }));
 
 app.use(express.json());
-app.use(cookieParser());
 
+mongoose.connect(process.env.MONGO_URI, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true
+}).then(() => console.log('MongoDB connected'))
+    .catch(err => console.error('MongoDB connection error:', err));
+
+const tokenSchema = new mongoose.Schema({
+    access_token: String,
+    refresh_token: String,
+    expires_at: Number
+}, { collection: 'spotify_tokens' });
+
+const Token = mongoose.model('Token', tokenSchema);
+
+async function getValidToken() {
+    let token = await Token.findOne();
+
+    if (!token) {
+        throw new Error('No token found');
+    }
+
+    // If token is expired, refresh it
+    if (Date.now() >= token.expires_at) {
+        const response = await fetch('https://accounts.spotify.com/api/token', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: querystring.stringify({
+                grant_type: 'refresh_token',
+                refresh_token: token.refresh_token,
+                client_id: client_id,
+                client_secret: client_secret
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to refresh token');
+        }
+
+        const data = await response.json();
+
+        token.access_token = data.access_token;
+        token.expires_at = Date.now() + (data.expires_in * 1000);
+        await token.save();
+
+        return token.access_token;
+    }
+
+    return token.access_token;
+}
 
 app.get('/api', (req, res) => {
     res.json({
         message: "Welcome to the Spotify App API"
     });
 });
-
 
 /// Dashboard Functions
 
@@ -89,21 +132,16 @@ app.get('/api/callback', async (req, res) => {
 
         const data = await response.json();
 
-        // Set HTTP-only cookies
-        res.cookie('spotify_access_token', data.access_token, {
-            httpOnly: true,
-            secure: true,
-            sameSite: 'none',
-            maxAge: data.expires_in * 1000 // Convert to milliseconds
-        });
-
-        if (data.refresh_token) {
-            res.cookie('spotify_refresh_token', data.refresh_token, {
-                httpOnly: true,
-                secure: true,
-                sameSite: 'none'
-            });
-        }
+        // Save token to MongoDB
+        await Token.findOneAndUpdate(
+            {},
+            {
+                access_token: data.access_token,
+                refresh_token: data.refresh_token,
+                expires_at: Date.now() + (data.expires_in * 1000)
+            },
+            { upsert: true, new: true }
+        );
 
         // Redirect to the dashboard
         res.redirect('https://spotify-app-alpha-six.vercel.app/dashboard');
@@ -114,15 +152,9 @@ app.get('/api/callback', async (req, res) => {
 });
 
 app.get('/api/me', async (req, res) => {
-    const access_token = req.cookies.spotify_access_token;
-    if (!access_token) {
-        return res.status(401).json({ error: { status: 401, message: 'Invalid access token' } });
-    }
-
-    const url = 'https://api.spotify.com/v1/me';
-
     try {
-        const response = await fetch(url, {
+        const access_token = await getValidToken();
+        const response = await fetch('https://api.spotify.com/v1/me', {
             headers: {
                 'Authorization': `Bearer ${access_token}`
             }
@@ -141,15 +173,11 @@ app.get('/api/me', async (req, res) => {
 });
 
 app.get('/api/me/top/tracks', async (req, res) => {
-    const access_token = req.cookies.spotify_access_token;
-    if (!access_token) {
-        return res.status(401).json({ error: { status: 401, message: 'Invalid access token' } });
-    }
-
     const time_range = req.query.time_range || 'long_term';
     const url = `https://api.spotify.com/v1/me/top/tracks?time_range=${time_range}&limit=5`;
 
     try {
+        const access_token = await getValidToken();
         const response = await fetch(url, {
             headers: {
                 'Authorization': `Bearer ${access_token}`
@@ -169,15 +197,11 @@ app.get('/api/me/top/tracks', async (req, res) => {
 });
 
 app.get('/api/me/top/artists', async (req, res) => {
-    const access_token = req.cookies.spotify_access_token;
-    if (!access_token) {
-        return res.status(401).json({ error: { status: 401, message: 'Invalid access token' } });
-    }
-
     const time_range = req.query.time_range || 'long_term';
     const url = `https://api.spotify.com/v1/me/top/artists?time_range=${time_range}&limit=5`;
 
     try {
+        const access_token = await getValidToken();
         const response = await fetch(url, {
             headers: {
                 'Authorization': `Bearer ${access_token}`
@@ -275,19 +299,14 @@ app.get('/api/artists/related', async (req, res) => {
     }
 })
 
-
-app.post('/api/logout', (req, res) => {
-    res.clearCookie('spotify_access_token', {
-        httpOnly: true,
-        secure: true,
-        sameSite: 'none'
-    });
-    res.clearCookie('spotify_refresh_token', {
-        httpOnly: true,
-        secure: true,
-        sameSite: 'none'
-    });
-    res.status(200).json({ message: 'Logged out successfully' });
+app.post('/api/logout', async (req, res) => {
+    try {
+        await Token.deleteMany({}); // Delete all tokens
+        res.status(200).json({ message: 'Logged out successfully' });
+    } catch (error) {
+        console.error('Logout error:', error);
+        res.status(500).json({ error: 'Failed to logout' });
+    }
 });
 
 export default app;
