@@ -9,8 +9,8 @@ dotenv.config();
 const app = express();
 const PORT = 3000;
 
-const client_secret = process.env.CLIENT_ID;
-const client_id = process.env.CLIENT_SECRET;
+const client_secret = process.env.CLIENT_SECRET;
+const client_id = process.env.CLIENT_ID;
 const redirect_uri = process.env.REDIRECT_URI;
 
 let access_token = null;
@@ -23,6 +23,8 @@ app.get('/api', (req, res) => {
         message: "Welcome to the Spotify App API"
     })
 })
+
+/// Dashboard Functions
 
 app.get('/api/login', async (req, res) => {
     const state = randomstring.generate(16);
@@ -59,7 +61,8 @@ app.get('/api/callback', async (req, res) => {
         })
         const data = await response.json();
         access_token = data.access_token;
-        res.json(data);
+        // res.json(data);
+        return res.redirect('http://localhost:5173/dashboard'); // Adjust this URL if necessary
     } catch (error) {
         console.error('Error:', error);
         res.status(500).json({ error: 'Failed to get access token' });
@@ -119,7 +122,91 @@ app.get('/api/me/top/artists', async (req, res) => {
     }
 })
 
+/// Home Functions
 
+async function getAccessToken(){
+    const url = 'https://accounts.spotify.com/api/token';
+    const response = await fetch(url, {
+        method: "POST",
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'Authorization': 'Basic ' + Buffer.from(`${client_id}:${client_secret}`).toString('base64')
+        },
+        body: querystring.stringify({
+            grant_type: 'client_credentials'
+        })
+    });
+    const data = await response.json();
+    return data.access_token;
+}
+
+app.get('/api/artists', async (req,res) => {
+    const url = 'https://api.spotify.com/v1/artists/2kCcBybjl3SAtIcwdWpUe3';
+    const token = await getAccessToken();
+    try{
+        const response = await fetch(url, {
+            method: "GET",
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+
+        const data = await response.json();
+        res.json(data);
+    }  catch (error){
+        res.status(500).json({ error: 'Failed to fetch profile' });
+    }
+})
+
+app.get('/api/artists/tracks', async (req,res) => {
+    const url = 'https://api.spotify.com/v1/artists/2kCcBybjl3SAtIcwdWpUe3/top-tracks?market=US';
+    const token = await getAccessToken();
+    try{
+        const response = await fetch(url, {
+            method: "GET",
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+
+        const data = await response.json();
+        res.json(data);
+    }  catch (error){
+        res.status(500).json({ error: 'Failed to fetch profile' });
+    }
+})
+
+app.get('/api/artists/related', async (req,res) => {
+
+    // 5g63iWaMJ2UrkZMkCC8dMi (tracy)
+    // 1VKWlHqcqwmU9CGKkJR09R (nedarb)
+    // 0LBfcXnrLErD1afLyzB2xA (horse head)
+    // 1fsCfvdiomqjKJFR6xI8e4 (cold hart)
+    // 1VPmR4DJC1PlOtd0IADAO0 (sb)
+
+    const url = 'https://api.spotify.com/v1/artists?ids=5g63iWaMJ2UrkZMkCC8dMi,1VKWlHqcqwmU9CGKkJR09R,0LBfcXnrLErD1afLyzB2xA,1fsCfvdiomqjKJFR6xI8e4,1VPmR4DJC1PlOtd0IADAO0'
+    const token = await getAccessToken();
+    try{
+        const response = await fetch(url, {
+            method: "GET",
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+
+        const data = await response.json();
+        res.json(data);
+    }  catch (error){
+        res.status(500).json({ error: 'Failed to fetch profile' });
+    }
+})
+
+
+app.post('/api/logout', (req,res) =>{
+    res.clearCookie('spotify_access_token');
+    res.clearCookie('spotify_refresh_token');
+    res.status(200).json({ message: 'Logged out successfully' });
+});
 
 app.listen(PORT, () => {
     console.log(`Serve is running on port ${PORT}`);
