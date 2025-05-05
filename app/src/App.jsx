@@ -8,38 +8,50 @@ function App() {
   const [topArtists, setTopArtists] = useState([]);
   const [duration, setDuration] = useState("long_term");
 
-  // const profileURL = "http://localhost:3000/api/me";
-  // const tracksURL = `http://localhost:3000/api/me/top/tracks?time_range=${duration}`;
-  // const artistsURL = `http://localhost:3000/api/me/top/artists?time_range=${duration}`;
+  const profileURL = "https://spotify-app-alpha-six.vercel.app/api/me";
+  const tracksURL = `https://spotify-app-alpha-six.vercel.app/api/me/top/tracks?time_range=${duration}`;
+  const artistsURL = `https://spotify-app-alpha-six.vercel.app/api/me/top/artists?time_range=${duration}`;
 
-  const profileURL = "http://localhost:3000/api/me";
-  const tracksURL = `http://localhost:3000/api/me/top/tracks?time_range=${duration}`;
-  const artistsURL = `http://localhost:3000/api/me/top/artists?time_range=${duration}`;
   useEffect(() => {
-    fetch(profileURL)
+    const token = localStorage.getItem('access_token');
+    if (!token) {
+      window.location.href = "https://spotify-app-alpha-six.vercel.app";
+      return;
+    }
+
+    fetch(profileURL, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    })
       .then((res) => res.json())
       .then((data) => setProfile(data));
 
-    fetch(tracksURL)
+    fetch(tracksURL, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    })
       .then((res) => res.json())
       .then((data) => setTopTracks(data.items));
 
-    fetch(artistsURL)
+    fetch(artistsURL, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    })
       .then((res) => res.json())
       .then((data) => setTopArtists(data.items));
   }, [duration]);
 
   const handleLogout = async () => {
     try {
-      await fetch("/api/logout", {
+      await fetch("https://spotify-app-alpha-six.vercel.app/api/logout", {
         method: "POST",
         credentials: "include" 
       });
       
-
       localStorage.removeItem("access_token");
-      
-
       window.location.href = "https://spotify-app-alpha-six.vercel.app";
     } catch (error) {
       console.error("Logout failed:", error);
