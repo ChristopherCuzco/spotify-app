@@ -93,8 +93,8 @@ app.get('/api/callback', async (req, res) => {
 
         // Redirect to the dashboard
         const redirectUrl = 'https://spotify-app-alpha-six.vercel.app/dashboard'
- 
-            
+
+
         res.redirect(redirectUrl);
     } catch (error) {
         console.error('Callback error:', error);
@@ -157,7 +157,7 @@ app.get('/api/me/top/artists', async (req, res) => {
 
 /// Home Functions
 
-async function getAccessToken(){
+async function getAccessToken() {
     const url = 'https://accounts.spotify.com/api/token';
     const response = await fetch(url, {
         method: "POST",
@@ -173,10 +173,10 @@ async function getAccessToken(){
     return data.access_token;
 }
 
-app.get('/api/artists', async (req,res) => {
+app.get('/api/artists', async (req, res) => {
     const url = 'https://api.spotify.com/v1/artists/2kCcBybjl3SAtIcwdWpUe3';
     const token = await getAccessToken();
-    try{
+    try {
         const response = await fetch(url, {
             method: "GET",
             headers: {
@@ -186,30 +186,30 @@ app.get('/api/artists', async (req,res) => {
 
         const data = await response.json();
         res.json(data);
-    }  catch (error){
+    } catch (error) {
         res.status(500).json({ error: 'Failed to fetch profile' });
     }
 })
 
-app.get('/api/artists/tracks', async (req,res) => {
+app.get('/api/artists/tracks', async (req, res) => {
     const url = 'https://api.spotify.com/v1/artists/2kCcBybjl3SAtIcwdWpUe3/top-tracks?market=US';
     const token = await getAccessToken();
-    try{
+    try {
         const response = await fetch(url, {
             method: "GET",
             headers: {
-                'Authorization': `Bearer ${token}`            
-                }
+                'Authorization': `Bearer ${token}`
+            }
         });
 
         const data = await response.json();
         res.json(data);
-    }  catch (error){
+    } catch (error) {
         res.status(500).json({ error: 'Failed to fetch profile' });
     }
 })
 
-app.get('/api/artists/related', async (req,res) => {
+app.get('/api/artists/related', async (req, res) => {
 
     // 5g63iWaMJ2UrkZMkCC8dMi (tracy)
     // 1VKWlHqcqwmU9CGKkJR09R (nedarb)
@@ -219,7 +219,7 @@ app.get('/api/artists/related', async (req,res) => {
 
     const url = 'https://api.spotify.com/v1/artists?ids=5g63iWaMJ2UrkZMkCC8dMi,1VKWlHqcqwmU9CGKkJR09R,0LBfcXnrLErD1afLyzB2xA,1fsCfvdiomqjKJFR6xI8e4,1VPmR4DJC1PlOtd0IADAO0'
     const token = await getAccessToken();
-    try{
+    try {
         const response = await fetch(url, {
             method: "GET",
             headers: {
@@ -229,13 +229,13 @@ app.get('/api/artists/related', async (req,res) => {
 
         const data = await response.json();
         res.json(data);
-    }  catch (error){
+    } catch (error) {
         res.status(500).json({ error: 'Failed to fetch profile' });
     }
 })
 
 
-app.post('/api/logout', (req,res) =>{
+app.post('/api/logout', (req, res) => {
     res.clearCookie('spotify_access_token');
     res.clearCookie('spotify_refresh_token');
     res.status(200).json({ message: 'Logged out successfully' });

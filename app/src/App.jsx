@@ -13,50 +13,24 @@ function App() {
   const artistsURL = `https://spotify-app-alpha-six.vercel.app/api/me/top/artists?time_range=${duration}`;
 
   useEffect(() => {
-    const token = localStorage.getItem('access_token');
-    if (!token) {
-      window.location.href = "https://spotify-app-alpha-six.vercel.app";
-      return;
-    }
 
-    fetch(profileURL, {
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
-    })
+    fetch(profileURL)
       .then((res) => res.json())
       .then((data) => setProfile(data));
 
-    fetch(tracksURL, {
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
-    })
+    fetch(tracksURL)
       .then((res) => res.json())
       .then((data) => setTopTracks(data.items));
 
-    fetch(artistsURL, {
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
-    })
+    fetch(artistsURL)
       .then((res) => res.json())
       .then((data) => setTopArtists(data.items));
   }, [duration]);
 
-  const handleLogout = async () => {
-    try {
-      await fetch("https://spotify-app-alpha-six.vercel.app/api/logout", {
-        method: "POST",
-        credentials: "include" 
-      });
-      
-      localStorage.removeItem("access_token");
-      window.location.href = "https://spotify-app-alpha-six.vercel.app";
-    } catch (error) {
-      console.error("Logout failed:", error);
-    }
+  const handleLogout = () => {
+    window.location.href = "https://spotify-app-alpha-six.vercel.app";
   };
+
   return (
     <div className="min-h-screen flex flex-col items-center justify-start bg-gradient-to-b from-zinc-900 to-black text-white px-4 py-8">
       {profile && (
@@ -74,9 +48,9 @@ function App() {
             className="px-6 sm:px-8 py-2 sm:py-3 bg-red-500/90 text-white rounded-full hover:bg-red-600 transition-all duration-300 shadow-lg hover:shadow-red-500/25 font-medium flex items-center gap-2 text-sm sm:text-base"
           >
             <svg className="w-4 h-4 sm:w-5 sm:h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
-              <polyline points="16 17 21 12 16 7"/>
-              <line x1="21" y1="12" x2="9" y2="12"/>
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+              <polyline points="16 17 21 12 16 7" />
+              <line x1="21" y1="12" x2="9" y2="12" />
             </svg>
             Logout
           </button>
