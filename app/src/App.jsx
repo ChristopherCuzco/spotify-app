@@ -13,22 +13,40 @@ function App() {
   const artistsURL = `https://spotify-app-alpha-six.vercel.app/api/me/top/artists?time_range=${duration}`;
 
   useEffect(() => {
+    fetch(profileURL, {
+      credentials: 'include'
+    })
+      .then((res) => {
+        if (!res.ok) {
+          window.location.href = "https://spotify-app-alpha-six.vercel.app";
+          return;
+        }
+        return res.json();
+      })
+      .then((data) => {
+        if (data) setProfile(data);
+      });
 
-    fetch(profileURL)
-      .then((res) => res.json())
-      .then((data) => setProfile(data));
-
-    fetch(tracksURL)
+    fetch(tracksURL, {
+      credentials: 'include'
+    })
       .then((res) => res.json())
       .then((data) => setTopTracks(data.items));
 
-    fetch(artistsURL)
+    fetch(artistsURL, {
+      credentials: 'include'
+    })
       .then((res) => res.json())
       .then((data) => setTopArtists(data.items));
   }, [duration]);
 
   const handleLogout = () => {
-    window.location.href = "https://spotify-app-alpha-six.vercel.app";
+    fetch("https://spotify-app-alpha-six.vercel.app/api/logout", {
+      method: "POST",
+      credentials: 'include'
+    }).then(() => {
+      window.location.href = "https://spotify-app-alpha-six.vercel.app";
+    });
   };
 
   return (

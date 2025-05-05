@@ -3,6 +3,7 @@ import cors from 'cors';
 import querystring from 'querystring';
 import randomstring from 'randomstring';
 import dotenv from 'dotenv';
+import cookieParser from 'cookie-parser';
 
 dotenv.config();
 
@@ -27,6 +28,7 @@ app.use(cors({
 }));
 
 app.use(express.json());
+app.use(cookieParser());
 
 
 app.get('/api', (req, res) => {
@@ -86,16 +88,25 @@ app.get('/api/callback', async (req, res) => {
         }
 
         const data = await response.json();
-        clientToken = {
-            access_token: data.access_token,
-            expires_at: Date.now() + (data.expires_in * 1000)
-        };
+
+        // Set HTTP-only cookies
+        res.cookie('spotify_access_token', data.access_token, {
+            httpOnly: true,
+            secure: true,
+            sameSite: 'none',
+            maxAge: data.expires_in * 1000 // Convert to milliseconds
+        });
+
+        if (data.refresh_token) {
+            res.cookie('spotify_refresh_token', data.refresh_token, {
+                httpOnly: true,
+                secure: true,
+                sameSite: 'none'
+            });
+        }
 
         // Redirect to the dashboard
-        const redirectUrl = 'https://spotify-app-alpha-six.vercel.app/dashboard'
-
-
-        res.redirect(redirectUrl);
+        res.redirect('https://spotify-app-alpha-six.vercel.app/dashboard');
     } catch (error) {
         console.error('Callback error:', error);
         res.status(500).json({ error: 'Failed to get access token' });
@@ -103,57 +114,87 @@ app.get('/api/callback', async (req, res) => {
 });
 
 app.get('/api/me', async (req, res) => {
-    const url = 'https://api.spotify.com/v1/me ';
+    const access_token = req.cookies.spotify_access_token;
+    if (!access_token) {
+        return res.status(401).json({ error: { status: 401, message: 'Invalid access token' } });
+    }
+
+    const url = 'https://api.spotify.com/v1/me';
 
     try {
         const response = await fetch(url, {
             headers: {
-                'Authorization': `Bearer ${clientToken.access_token}`
+                'Authorization': `Bearer ${access_token}`
             }
         });
+
+        if (!response.ok) {
+            throw new Error(`Spotify API error: ${response.status}`);
+        }
 
         const data = await response.json();
         res.json(data);
     } catch (error) {
+        console.error('Profile fetch error:', error);
         res.status(500).json({ error: 'Failed to fetch profile' });
     }
-})
+});
 
 app.get('/api/me/top/tracks', async (req, res) => {
+    const access_token = req.cookies.spotify_access_token;
+    if (!access_token) {
+        return res.status(401).json({ error: { status: 401, message: 'Invalid access token' } });
+    }
+
     const time_range = req.query.time_range || 'long_term';
     const url = `https://api.spotify.com/v1/me/top/tracks?time_range=${time_range}&limit=5`;
 
     try {
         const response = await fetch(url, {
             headers: {
-                'Authorization': `Bearer ${clientToken.access_token}`
+                'Authorization': `Bearer ${access_token}`
             }
         });
+
+        if (!response.ok) {
+            throw new Error(`Spotify API error: ${response.status}`);
+        }
 
         const data = await response.json();
         res.json(data);
     } catch (error) {
-        res.status(500).json({ error: 'Failed to fetch profile' });
+        console.error('Tracks fetch error:', error);
+        res.status(500).json({ error: 'Failed to fetch tracks' });
     }
-})
+});
 
 app.get('/api/me/top/artists', async (req, res) => {
+    const access_token = req.cookies.spotify_access_token;
+    if (!access_token) {
+        return res.status(401).json({ error: { status: 401, message: 'Invalid access token' } });
+    }
+
     const time_range = req.query.time_range || 'long_term';
     const url = `https://api.spotify.com/v1/me/top/artists?time_range=${time_range}&limit=5`;
 
     try {
         const response = await fetch(url, {
             headers: {
-                'Authorization': `Bearer ${clientToken.access_token}`
+                'Authorization': `Bearer ${access_token}`
             }
         });
+
+        if (!response.ok) {
+            throw new Error(`Spotify API error: ${response.status}`);
+        }
 
         const data = await response.json();
         res.json(data);
     } catch (error) {
-        res.status(500).json({ error: 'Failed to fetch profile' });
+        console.error('Artists fetch error:', error);
+        res.status(500).json({ error: 'Failed to fetch artists' });
     }
-})
+});
 
 /// Home Functions
 
@@ -236,8 +277,16 @@ app.get('/api/artists/related', async (req, res) => {
 
 
 app.post('/api/logout', (req, res) => {
-    res.clearCookie('spotify_access_token');
-    res.clearCookie('spotify_refresh_token');
+    res.clearCookie('spotify_access_token', {
+        httpOnly: true,
+        secure: true,
+        sameSite: 'none'
+    });
+    res.clearCookie('spotify_refresh_token', {
+        httpOnly: true,
+        secure: true,
+        sameSite: 'none'
+    });
     res.status(200).json({ message: 'Logged out successfully' });
 });
 
