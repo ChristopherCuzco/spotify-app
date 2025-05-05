@@ -35,6 +35,13 @@ app.get('/api', (req, res) => {
     });
 });
 
+app.get('/api/test', (req, res) => {
+    res.json({
+        message: "this is a test"
+    });
+});
+
+
 /// Dashboard Functions
 
 app.get('/api/login', async (req, res) => {
