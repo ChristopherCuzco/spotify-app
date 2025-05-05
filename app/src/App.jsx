@@ -31,7 +31,7 @@ function App() {
 
   const handleLogout = async () => {
     try {
-      await fetch("http://localhost:3000/api/logout", {
+      await fetch("/api/logout", {
         method: "POST",
         credentials: "include" 
       });
@@ -40,7 +40,7 @@ function App() {
       localStorage.removeItem("access_token");
       
 
-      window.location.href = "http://localhost:5173";
+      window.location.href = "https://spotify-app-alpha-six.vercel.app";
     } catch (error) {
       console.error("Logout failed:", error);
     }
