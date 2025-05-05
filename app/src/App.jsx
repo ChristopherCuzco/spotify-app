@@ -12,11 +12,9 @@ function App() {
   // const tracksURL = `http://localhost:3000/api/me/top/tracks?time_range=${duration}`;
   // const artistsURL = `http://localhost:3000/api/me/top/artists?time_range=${duration}`;
 
-  const profileURL = "https://spotify-app-alpha-six.vercel.app/api/me";
-  const tracksURL = `https://spotify-app-alpha-six.vercel.app/api/me/top/tracks?time_range=${duration}`;
-  const artistsURL = `https://spotify-app-alpha-six.vercel.app/api/me/top/artists?time_range=${duration}`;
-
-
+  const profileURL = "http://localhost:3000/api/me";
+  const tracksURL = `http://localhost:3000/api/me/top/tracks?time_range=${duration}`;
+  const artistsURL = `http://localhost:3000/api/me/top/artists?time_range=${duration}`;
   useEffect(() => {
     fetch(profileURL)
       .then((res) => res.json())
@@ -33,15 +31,16 @@ function App() {
 
   const handleLogout = async () => {
     try {
-      // http://localhost:3000/api/logout
-      await fetch("https://spotify-app-alpha-six.vercel.app/api/logout", {
+      await fetch("http://localhost:3000/api/logout", {
         method: "POST",
         credentials: "include" 
       });
       
-      localStorage.removeItem("access_token");
 
-      window.location.href = "https://spotify-app-alpha-six.vercel.app/";
+      localStorage.removeItem("access_token");
+      
+
+      window.location.href = "http://localhost:5173";
     } catch (error) {
       console.error("Logout failed:", error);
     }
