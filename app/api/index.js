@@ -13,32 +13,52 @@ const client_secret = process.env.CLIENT_SECRET;
 const client_id = process.env.CLIENT_ID;
 const redirect_uri = process.env.REDIRECT_URI;
 
-let access_token = null;
+let clientToken = {
+    access_token: null,
+    expires_at: 0
+};
 
-app.use(cors());
+
+app.use(cors({
+    origin: 'https://spotify-app-alpha-six.vercel.app',
+    credentials: true,
+    methods: ['GET', 'POST', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization']
+}));
+
 app.use(express.json());
+
 
 app.get('/api', (req, res) => {
     res.json({
         message: "Welcome to the Spotify App API"
-    })
-})
+    });
+});
 
 /// Dashboard Functions
 
 app.get('/api/login', async (req, res) => {
-    const state = randomstring.generate(16);
-    const scope = 'user-read-private user-read-email user-top-read';
+    try {
+        const state = randomstring.generate(16);
+        const scope = 'user-read-private user-read-email user-top-read';
 
-    res.redirect('https://accounts.spotify.com/authorize?' +
-        querystring.stringify({
-            response_type: 'code',
-            client_id: client_id,
-            scope: scope,
-            redirect_uri: redirect_uri,
-            state: state
-        }))
-})
+        const authUrl = 'https://accounts.spotify.com/authorize?' +
+            querystring.stringify({
+                response_type: 'code',
+                client_id: client_id,
+                scope: scope,
+                redirect_uri: redirect_uri,
+                state: state,
+                show_dialog: true
+            });
+
+        console.log('Redirecting to:', authUrl); // Debug log
+        res.redirect(authUrl);
+    } catch (error) {
+        console.error('Login error:', error);
+        res.status(500).json({ error: 'Failed to initiate login' });
+    }
+});
 
 app.get('/api/callback', async (req, res) => {
     const code = req.query.code;
@@ -58,16 +78,28 @@ app.get('/api/callback', async (req, res) => {
                 client_id: client_id,
                 client_secret: client_secret
             })
-        })
+        });
+
+        if (!response.ok) {
+            throw new Error(`Token request failed: ${response.status}`);
+        }
+
         const data = await response.json();
-        access_token = data.access_token;
-        // res.json(data);
-        return res.redirect('http://localhost:5173/dashboard'); // Adjust this URL if necessary
+        clientToken = {
+            access_token: data.access_token,
+            expires_at: Date.now() + (data.expires_in * 1000)
+        };
+
+        // Redirect to the dashboard
+        const redirectUrl = 'https://spotify-app-alpha-six.vercel.app/dashboard'
+ 
+            
+        res.redirect(redirectUrl);
     } catch (error) {
-        console.error('Error:', error);
+        console.error('Callback error:', error);
         res.status(500).json({ error: 'Failed to get access token' });
     }
-})
+});
 
 app.get('/api/me', async (req, res) => {
     const url = 'https://api.spotify.com/v1/me ';
@@ -75,7 +107,7 @@ app.get('/api/me', async (req, res) => {
     try {
         const response = await fetch(url, {
             headers: {
-                'Authorization': `Bearer ${access_token}`
+                'Authorization': `Bearer ${clientToken.access_token}`
             }
         });
 
@@ -93,7 +125,7 @@ app.get('/api/me/top/tracks', async (req, res) => {
     try {
         const response = await fetch(url, {
             headers: {
-                'Authorization': `Bearer ${access_token}`
+                'Authorization': `Bearer ${clientToken.access_token}`
             }
         });
 
@@ -111,7 +143,7 @@ app.get('/api/me/top/artists', async (req, res) => {
     try {
         const response = await fetch(url, {
             headers: {
-                'Authorization': `Bearer ${access_token}`
+                'Authorization': `Bearer ${clientToken.access_token}`
             }
         });
 
@@ -165,8 +197,8 @@ app.get('/api/artists/tracks', async (req,res) => {
         const response = await fetch(url, {
             method: "GET",
             headers: {
-                'Authorization': `Bearer ${token}`
-            }
+                'Authorization': `Bearer ${token}`            
+                }
         });
 
         const data = await response.json();
@@ -209,6 +241,8 @@ app.post('/api/logout', (req,res) =>{
 });
 
 export default app;
+
 // app.listen(PORT, () => {
 //     console.log(`Serve is running on port ${PORT}`);
 // })
+
